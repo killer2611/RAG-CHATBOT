@@ -1,0 +1,82 @@
+[
+  {
+    "question": "What is the main focus of this paper?",
+    "answer": "The paper explores microLED technology, particularly its integration with CMOS microelectronics, and looks beyond traditional display applications toward uses like nanosensors, optical neuromorphic networks, and chip-based microscopy."
+  },
+  {
+    "question": "What substrate do light-emitting GaN devices typically use, and why?",
+    "answer": "Light-emitting GaN devices are almost always grown on sapphire substrates rather than silicon. Sapphire is more expensive and less thermally conductive than silicon, but it allows fewer crystal defects, higher crystal quality, and is transparent in the visible range, giving more flexibility in optical device design."
+  },
+  {
+    "question": "Why is silicon preferred for electronic GaN devices instead of sapphire?",
+    "answer": "Electronic GaN devices are preferably grown on silicon wafers, which fits standard CMOS design and foundry infrastructure, unlike light-emitting GaN devices which favor sapphire for optical quality reasons."
+  },
+  {
+    "question": "What circuit design is commonly used to drive individual microLED pixels?",
+    "answer": "A 2T1C circuit — two transistors and one capacitor — is a common design for driving microLEDs, used for both pulse amplitude modulation (PAM) and pulse width modulation (PWM)."
+  },
+  {
+    "question": "What are the three key requirements for mass transfer technology in microLED display manufacturing?",
+    "answer": "High placement accuracy (under 1 micron), a high transfer rate (over 100 million per hour), and a high yield of functional pixels (over 99.999%)."
+  },
+  {
+    "question": "What material are elastomeric transfer stamps typically made from, and how do they pick up microLEDs?",
+    "answer": "Elastomeric stamps are typically made from PDMS (poly(dimethylsiloxane)). They pick up microLEDs via non-specific van der Waals forces when pressed against the donor substrate, and release them onto the receiver substrate by reducing that adhesion, for example by controlling peel velocity and temperature."
+  },
+  {
+    "question": "What is laser lift-off (LLO) used for in microLED fabrication?",
+    "answer": "Laser lift-off is used to remove the sapphire substrate from the MOVPE-LED stack, which helps improve light extraction, optimize heat transfer, and enables transferring LEDs onto flexible or foreign substrates."
+  },
+  {
+    "question": "What recent industry decision does the paper cite as evidence that microLED mass production is still challenging?",
+    "answer": "The paper cites Apple's decision to postpone its microLED smartwatch project as evidence that reliable, cost-effective hybrid integration of microLEDs is not yet fully solved, though the paper frames this as a temporary delay rather than a long-term setback."
+  },
+  {
+    "question": "How does the minimum feasible microLED pixel size vary by display application?",
+    "answer": "Compact AR displays need the smallest pixels, roughly 1-10 micrometers. Smartwatch and phone displays use medium pixel sizes around 10-50 micrometers, while large screen TVs typically use larger pixels in the 50-100 micrometer range."
+  },
+  {
+    "question": "What is structured illumination microscopy using microLEDs, and how does it differ from conventional microscopy?",
+    "answer": "Instead of illuminating a specimen all at once like a conventional microscope, structured illumination microscopy switches individual nanoLEDs in an array on and off one at a time. Since the illumination position is known precisely at every moment, no imaging lens or focusing is required, and resolution is set by the pitch of the nanoLEDs rather than conventional optics."
+  },
+  {
+    "question": "What resolution have nanoLEDs achieved in structured illumination experiments, and what is the limiting distance requirement?",
+    "answer": "NanoLEDs with diameters as small as 200 nanometers have been demonstrated. However, to translate that into actual spatial resolution, the sample needs to be within roughly 400 nanometers of the nanoLED array's near field, which is difficult to achieve given the layer structure required in nitride LEDs."
+  },
+  {
+    "question": "What is optical downscaling, and what power density can it achieve?",
+    "answer": "Optical downscaling is a technique where a microLED array's emission is optically miniaturized (e.g. by a factor of 100) to shrink the effective pixel pitch below the diffraction limit. This approach can achieve power densities as high as one million watts per square centimeter."
+  },
+  {
+    "question": "How are GaN microLEDs used in optogenetics research?",
+    "answer": "GaN-based microLEDs can excite channelrhodopsin (ChR2) molecules at a threshold intensity using a 450 nanometer wavelength, triggering electrical excitation responses in neural networks. This has been applied to study contraction behavior in bioartificial cardiac tissue, with pixel widths between roughly 12.5 and 62.5 micrometers used in these experiments."
+  },
+  {
+    "question": "What are the different operating regimes of an LED relevant to sensing applications?",
+    "answer": "The paper describes multiple regimes: forward bias beyond the emission threshold (the LED as a light source for optical sensing), the sub-threshold regime (where the LED behaves as a non-emitting diode useful for mapping properties like temperature or strain), and reverse operation where the LED's p-n junction can act as a photodetector or energy harvester under external illumination."
+  },
+  {
+    "question": "What is visible light communication (VLC), and why are GaN LEDs suited to it?",
+    "answer": "Visible light communication uses LEDs both for illumination and simultaneous data transmission to photodiode receivers. GaN LEDs are considered good candidates for VLC transmitters due to their high average efficiency, and the paper describes optimization approaches like rate-splitting multiple access combined with reinforcement learning methods to maximize data rates."
+  },
+  {
+    "question": "What future light source is proposed as a successor to incoherent microLEDs, and what challenge does it face?",
+    "answer": "The paper proposes moving from microLEDs to coherent microLaser sources based on vertically emitting laser diodes (VCSELs), which require a vertical optical cavity built from distributed Bragg reflectors (DBRs). A key challenge is that conventional dielectric DBRs are non-conductive, complicating current flow through the device structure."
+  },
+  {
+    "question": "How might porous GaN help solve the DBR conductivity challenge for VCSELs?",
+    "answer": "Porous GaN can be fabricated using a dopant-dependent electrochemical etching process, and because the etched channels are filled with air, it acts as a low-refractive-index material suitable for DBRs, achieving peak reflectivity above 99% while remaining conductive."
+  },
+  {
+    "question": "What potential application does the paper describe as possibly higher-impact than displays?",
+    "answer": "The paper highlights optical neuromorphic computing as a potentially even higher-impact application than displays, citing the natural parallelism of optical systems — where a single microLED can communicate with millions of detectors simultaneously, similar to biological neural interconnects."
+  },
+  {
+    "question": "What compute efficiency does the paper claim is achievable with GaN-based optical neuromorphic processing, compared to current AI hardware?",
+    "answer": "The paper states that such optical systems could achieve compute power exceeding 100 TOPS per watt, roughly two orders of magnitude better than the efficiency of an NVIDIA H100 processor, which is commonly used today for large language models and AI workloads."
+  },
+  {
+    "question": "What does the paper identify as a key limiting factor for GaN technology development going forward?",
+    "answer": "The paper points out that GaN foundries are not widely available, unlike silicon electronics where foundry access is well established even for small-scale research. It suggests that building out a GaN foundry ecosystem would significantly help advance the technology."
+  }
+]
