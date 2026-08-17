@@ -9,7 +9,8 @@ from app.api.dependencies import get_evaluation_runner
 async def main() -> None:
     judge = sys.argv[1] if len(sys.argv) > 1 else None
     test_file = sys.argv[2] if len(sys.argv) > 2 else None
-    path = await get_evaluation_runner().run("cli", judge, test_file)
+    case_limit = int(sys.argv[3]) if len(sys.argv) > 3 else 5
+    path = await get_evaluation_runner().run("cli", judge, test_file, case_limit)
     print(path)
 
 

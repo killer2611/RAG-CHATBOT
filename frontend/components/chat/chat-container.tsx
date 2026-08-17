@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { Menu, Plus, RefreshCw, AlertCircle } from "lucide-react";
 import { MessageList } from "@/components/chat/message-list";
 import { ChatComposer } from "@/components/chat/chat-composer";
@@ -17,7 +17,15 @@ function createSessionId(): string {
   return `session_${timestamp}_${rand}`;
 }
 
+const emptySubscribe = () => () => {};
+
 export function ChatContainer() {
+  const isHydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
   const [sessionId, setSessionId] = useState<string>(() => createSessionId());
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -137,6 +145,12 @@ export function ChatContainer() {
       lastUserMessageRef.current = text;
       messageIdCounter.current += 1;
 
+      // Ensure active session ID exists before dispatching
+      const activeSession = sessionId || createSessionId();
+      if (!sessionId) {
+        setSessionId(activeSession);
+      }
+
       // Add user turn immediately to message list
       const userMessage: ChatMessage = {
         id: `user-${messageIdCounter.current}`,
@@ -145,7 +159,7 @@ export function ChatContainer() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      await sendMessage(sessionId, text);
+      await sendMessage(activeSession, text);
     },
     [sessionId, isStreaming, sendMessage]
   );
@@ -196,9 +210,11 @@ export function ChatContainer() {
               <Menu size={18} />
             </button>
             <span className="text-xs font-semibold text-text-primary truncate max-w-[200px] sm:max-w-xs">
-              {sessionId.startsWith("session_")
-                ? `Thread ${sessionId.slice(8, 16)}`
-                : sessionId}
+              {isHydrated && sessionId
+                ? sessionId.startsWith("session_")
+                  ? `Thread ${sessionId.slice(8, 16)}`
+                  : sessionId
+                : "New Thread"}
             </span>
           </div>
 

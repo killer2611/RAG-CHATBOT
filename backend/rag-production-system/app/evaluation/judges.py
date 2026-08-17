@@ -2,28 +2,60 @@ from __future__ import annotations
 
 import os
 
-from deepeval.models import GeminiModel, OllamaModel
+from deepeval.models import GPTModel
 
 from app.core.config import Settings
 
 
 def build_judge(settings: Settings, override: str | None = None):
-    provider = override or settings.eval_judge
-    # DeepEval already retries transient failures with exponential backoff. These flags
-    # increase the retry budget for provider-side 429/5xx behavior without duplicating
-    # the whole evaluation loop in application code.
-    os.environ.setdefault("DEEPEVAL_RETRY_MAX_ATTEMPTS", "5")
-    os.environ.setdefault("DEEPEVAL_RETRY_CAP_SECONDS", "30")
+    """
+    Build the cloud LLM used by DeepEval.
 
-    if provider == "ollama":
-        return OllamaModel(
-            model=settings.eval_ollama_model,
-            base_url=settings.eval_ollama_base_url,
+    Evaluation is intentionally cloud-only:
+      - deepseek  -> DeepSeek V4 Flash (primary)
+      - sambanova -> SambaNova hosted model (secondary/free option)
+    """
+    provider = (override or settings.eval_judge).strip().lower()
+
+    # The previous run hit DeepEval's default ~32s per-attempt timeout.
+    # DeepSeek responses were reaching the API successfully, but some metric
+    # requests exceeded that client-side limit. Give individual judge calls
+    # more room while keeping retries bounded.
+    os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "300")
+    os.environ.setdefault("DEEPEVAL_RETRY_MAX_ATTEMPTS", "2")
+    os.environ.setdefault("DEEPEVAL_RETRY_CAP_SECONDS", "20")
+
+    if provider == "deepseek":
+        key = settings.eval_deepseek_api_key
+        if not key:
+            raise RuntimeError(
+                "DEEPSEEK evaluation API key is required. "
+                "Set EVAL_DEEPSEEK_API_KEY in .env."
+            )
+
+        return GPTModel(
+            model=settings.eval_deepseek_model,
+            api_key=key,
+            base_url=settings.eval_deepseek_base_url,
             temperature=0,
         )
-    if provider == "gemini":
-        key = settings.eval_gemini_api_key or settings.gemini_api_key
+
+    if provider == "sambanova":
+        key = settings.eval_sambanova_api_key
         if not key:
-            raise RuntimeError("GEMINI API key is required for Gemini evaluation")
-        return GeminiModel(model=settings.eval_gemini_model, api_key=key, temperature=0)
-    raise ValueError(f"Unsupported evaluation judge: {provider}")
+            raise RuntimeError(
+                "SAMBANOVA evaluation API key is required. "
+                "Set EVAL_SAMBANOVA_API_KEY in .env."
+            )
+
+        return GPTModel(
+            model=settings.eval_sambanova_model,
+            api_key=key,
+            base_url=settings.eval_sambanova_base_url,
+            temperature=0,
+        )
+
+    raise ValueError(
+        f"Unsupported evaluation judge: {provider!r}. "
+        "Evaluation is cloud-only; use 'deepseek' or 'sambanova'."
+    )

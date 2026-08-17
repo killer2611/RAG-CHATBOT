@@ -17,7 +17,7 @@ router = APIRouter(tags=["evaluation"])
 async def _run_job(job: Job, request: EvaluateRequest, runner: EvaluationRunner) -> None:
     await job_manager.update(job.job_id, status="running", progress=10, message="Building evaluation cases")
     try:
-        report = await runner.run(job.job_id, request.judge, request.test_file)
+        report = await runner.run(job.job_id, request.judge, request.test_file, request.case_limit)
         await job_manager.update(
             job.job_id,
             status="completed",
@@ -26,7 +26,7 @@ async def _run_job(job: Job, request: EvaluateRequest, runner: EvaluationRunner)
             completed_at=datetime.now(timezone.utc),
             report_path=str(report),
         )
-    except Exception as exc:
+    except BaseException as exc:
         await job_manager.update(
             job.job_id,
             status="failed",
@@ -35,6 +35,8 @@ async def _run_job(job: Job, request: EvaluateRequest, runner: EvaluationRunner)
             completed_at=datetime.now(timezone.utc),
             error=str(exc),
         )
+        if isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)):
+            raise
 
 
 @router.post("/evaluate", response_model=JobStatus, status_code=202)
@@ -83,4 +85,13 @@ async def evaluation_results(job_id: str):
     data = await asyncio.to_thread(parse_evaluation_report, Path(job.report_path), job_id)
     if job.completed_at:
         data["completed_at"] = job.completed_at
+    
+    meta_path = Path(job.report_path).with_name(Path(job.report_path).stem + "_meta.json")
+    if meta_path.exists():
+        import json
+        try:
+            data["metadata"] = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            data["metadata"] = {}
+            
     return EvaluationResultsResponse(**data)

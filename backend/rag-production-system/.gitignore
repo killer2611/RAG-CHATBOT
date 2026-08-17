@@ -2,6 +2,11 @@
 .env.local
 __pycache__/
 *.py[cod]
+.pytest-tmp/
+pytest_tmp/
+.deepeval/
+__pycache__/
+*.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

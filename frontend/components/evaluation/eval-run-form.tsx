@@ -15,7 +15,7 @@ export const EvalRunForm = memo(function EvalRunForm({
   isRunning,
   disabled = false,
 }: EvalRunFormProps) {
-  const [judge, setJudge] = useState<"gemini" | "ollama">("gemini");
+  const [judge, setJudge] = useState<"deepseek" | "sambanova">("deepseek");
   const [testFile, setTestFile] = useState<string>("data/golden_qa.json");
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -60,16 +60,16 @@ export const EvalRunForm = memo(function EvalRunForm({
           </label>
           <select
             value={judge}
-            onChange={(e) => setJudge(e.target.value as "gemini" | "ollama")}
+            onChange={(e) => setJudge(e.target.value as "deepseek" | "sambanova")}
             disabled={disabled || isRunning}
             aria-label="Evaluation judge LLM"
             className="w-full rounded-lg border border-border-subtle bg-surface-base px-3 py-2 text-xs text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
           >
-            <option value="gemini">Google Gemini (Recommended / Cloud)</option>
-            <option value="ollama">Ollama (Local LLM Instance)</option>
+            <option value="deepseek">DeepSeek V4 Flash (Primary / Cloud)</option>
+            <option value="sambanova">SambaNova Llama 3.3 70B (Free / Cloud)</option>
           </select>
           <p className="text-[10px] text-text-tertiary">
-            The LLM used by DeepEval to evaluate faithfulness and contextual metrics.
+            Cloud LLM used by DeepEval to evaluate faithfulness and contextual metrics. No local LLM is used.
           </p>
         </div>
 

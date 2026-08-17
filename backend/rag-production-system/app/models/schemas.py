@@ -63,8 +63,9 @@ class DocumentSummary(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
-    judge: Literal["ollama", "gemini"] | None = None
+    judge: Literal["deepseek", "sambanova"] | None = None
     test_file: str | None = None
+    case_limit: int = Field(default=5, ge=1)
 
 
 class JobStatus(BaseModel):
@@ -92,6 +93,8 @@ class TestCaseResult(BaseModel):
     expected_output: str | None = None
     actual_output: str | None = None
     success: bool
+    source_match_status: str | None = None
+    error_type: str | None = None
     metrics: dict[str, MetricDetail] = Field(default_factory=dict)
 
 
@@ -105,6 +108,7 @@ class EvaluationResultsResponse(BaseModel):
     job_id: str
     status: str
     completed_at: datetime | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     summary: EvaluationSummary
     test_cases: list[TestCaseResult]
 

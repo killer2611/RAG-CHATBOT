@@ -64,7 +64,7 @@ export interface DocumentSummary {
 }
 
 export interface EvaluateRequest {
-  judge?: "ollama" | "gemini" | null;
+  judge?: "deepseek" | "sambanova" | null;
   test_file?: string | null;
 }
 
