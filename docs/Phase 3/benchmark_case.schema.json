@@ -1,0 +1,590 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rag-eval/benchmark-case/v1",
+  "title": "RAG Evaluation Benchmark Case",
+  "description": "Canonical source-aware and chunker-independent benchmark contract for the universal RAG evaluation engine.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "case_id",
+    "question",
+    "expected_answer",
+    "answerability",
+    "question_type",
+    "topics",
+    "source",
+    "evidence",
+    "claims",
+    "verification",
+    "retrieval_profile",
+    "version"
+  ],
+
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_answer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answerability": {
+      "type": "string",
+      "enum": [
+        "answerable",
+        "unanswerable"
+      ]
+    },
+    "question_type": {
+      "type": "string",
+      "enum": [
+        "factual",
+        "definition",
+        "numeric",
+        "procedural",
+        "comparison",
+        "multi_hop",
+        "synthesis",
+        "abstention"
+      ]
+    },
+    "topics": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "verification": {
+      "$ref": "#/$defs/verification"
+    },
+    "retrieval_profile": {
+      "$ref": "#/$defs/retrieval_profile"
+    },
+    "version": {
+      "$ref": "#/$defs/version"
+    }
+  },
+
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_name",
+        "source_id",
+        "document_hash",
+        "document_type",
+        "type_confidence"
+      ],
+      "properties": {
+        "source_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_type": {
+          "type": "string",
+          "enum": [
+            "legal",
+            "policy",
+            "technical-research",
+            "manual",
+            "narrative",
+            "tabular",
+            "general"
+          ]
+        },
+        "type_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "quote",
+        "span_hash"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact source text supporting the benchmark case or claim."
+        },
+        "span_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim",
+        "support_status",
+        "evidence_ids"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "support_status": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "unsupported",
+            "contradicted",
+            "not_applicable"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rationale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "primary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "rejected",
+            "disputed",
+            "human_review"
+          ]
+        },
+        "primary": {
+          "$ref": "#/$defs/verifier_result"
+        },
+        "secondary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/secondary_verifier_result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "human_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/human_review"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "primary": {
+                "properties": {
+                  "verdict": {
+                    "const": "disputed"
+                  }
+                }
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "properties": {
+              "secondary": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "secondary": {
+                "type": "null"
+              },
+              "primary": {
+                "properties": {
+                  "verdict": {
+                    "const": "accepted"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "const": "accepted"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "secondary": {
+                "type": "null"
+              },
+              "primary": {
+                "properties": {
+                  "verdict": {
+                    "const": "rejected"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "const": "rejected"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "secondary": {
+                "type": "null"
+              },
+              "primary": {
+                "properties": {
+                  "verdict": {
+                    "const": "disputed"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "const": "disputed"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "secondary"
+            ],
+            "properties": {
+              "secondary": {
+                "type": "object",
+                "properties": {
+                  "verdict": {
+                    "const": "accepted"
+                  }
+                },
+                "required": [
+                  "verdict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "accepted",
+                  "human_review"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "secondary"
+            ],
+            "properties": {
+              "secondary": {
+                "type": "object",
+                "properties": {
+                  "verdict": {
+                    "const": "rejected"
+                  }
+                },
+                "required": [
+                  "verdict"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "rejected",
+                  "human_review"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "verifier_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "claims_checked"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "rejected",
+            "disputed"
+          ]
+        },
+        "claims_checked": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unsupported_claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+
+    "secondary_verifier_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "claims_checked"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        },
+        "claims_checked": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unsupported_claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+
+    "human_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+
+    "retrieval_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_scope",
+        "corpus_position",
+        "distractor_profile",
+        "retrieval_risk"
+      ],
+      "properties": {
+        "evidence_scope": {
+          "type": "string",
+          "enum": [
+            "single_span",
+            "multi_span"
+          ]
+        },
+        "corpus_position": {
+          "type": "string",
+          "enum": [
+            "start",
+            "middle",
+            "end"
+          ]
+        },
+        "distractor_profile": {
+          "type": "string",
+          "enum": [
+            "none",
+            "near_duplicate",
+            "semantic_distractor"
+          ]
+        },
+        "retrieval_risk": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "benchmark_version"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "benchmark_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generator_prompt_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verifier_prompt_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

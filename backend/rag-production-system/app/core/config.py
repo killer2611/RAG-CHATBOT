@@ -78,6 +78,12 @@ class Settings(BaseSettings):
 
     job_ttl_seconds: int = 86400
 
+    # Phase 3 Configuration
+    phase3_schema_version: str = "1.0"
+    phase3_benchmark_version: str = "3b-candidate"
+    phase3_generator_prompt_version: str | None = None
+    phase3_verifier_prompt_version: str | None = None
+
     def ensure_directories(self) -> None:
         self.vector_store_dir.mkdir(parents=True, exist_ok=True)
         self.parent_store_db.parent.mkdir(parents=True, exist_ok=True)
