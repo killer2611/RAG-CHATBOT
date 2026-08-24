@@ -386,18 +386,32 @@ async def test_version_field_presence_and_schema_validation(provenance_resolver,
         assert d["verification"]["verdict"] is None
         assert "retrieval_profile" in d
 
-        # 4. Validate against frozen schema (after removing still-missing downstream fields)
+        # 4. Validate against frozen schema (after completing downstream fields)
         schema_path = Path("docs/Phase 3/benchmark_case.schema.json")
         if schema_path.exists():
             with open(schema_path, "r", encoding="utf-8") as f:
                 schema = json.load(f)
 
-            # 3B candidates remain partial w.r.t. downstream stages.
-            # Remove verification and the still-missing corpus-global rp fields.
-            if "verification" in schema["required"]:
-                schema["required"].remove("verification")
+            # To validate the schema properly, we must complete the case as
+            # PartialBenchmarkCandidate is intentionally schema-invalid at this boundary.
+            completed = dict(d)
+            completed["claims"][0]["support_status"] = "supported"
+            completed["retrieval_profile"]["corpus_position"] = "start"
+            completed["retrieval_profile"]["distractor_profile"] = "none"
+            completed["retrieval_profile"]["retrieval_risk"] = "low"
+            completed["verification"] = {
+                "verdict": "accepted",
+                "primary": {
+                    "verdict": "accepted",
+                    "claims_checked": [completed["claims"][0]["claim_id"]],
+                    "unsupported_claims": [],
+                    "reason": "Because"
+                },
+                "secondary": None,
+                "human_review": None,
+            }
 
-            jsonschema.validate(instance=d, schema=schema)
+            jsonschema.validate(instance=completed, schema=schema)
     finally:
         # Restore configuration
         settings.phase3_schema_version = original_sv

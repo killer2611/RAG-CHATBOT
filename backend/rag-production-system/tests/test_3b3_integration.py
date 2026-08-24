@@ -263,28 +263,20 @@ class TestCorpusPositionDerivation:
         pos = gen._derive_corpus_position([ev_no_page], total_pages=9, full_text=full_text)
         assert pos is None
 
-    def test_no_page_metadata_falls_back_to_string_index(self, resolver_single):
+    def test_no_page_metadata_returns_none(self, resolver_single):
         gen = self._gen(resolver_single)
         ev_no_page = {"page": None, "quote": "needle", "span_hash": "y", "evidence_id": "z", "section": None}
-
-        # 100 char string. "needle" at index 10 (first third)
         full_text = "0123456789needle...................................................................................."
-        assert len(full_text) == 100
         pos = gen._derive_corpus_position([ev_no_page], total_pages=9, full_text=full_text)
-        assert pos == "start"
+        assert pos is None
 
-        # "needle" at index 80 (last third)
-        full_text_end = "................................................................................needle.........."
-        pos2 = gen._derive_corpus_position([ev_no_page], total_pages=9, full_text=full_text_end)
-        assert pos2 == "end"
-
-    def test_zero_total_pages_falls_back_to_string_index(self, resolver_single):
+    def test_zero_total_pages_returns_none(self, resolver_single):
         gen = self._gen(resolver_single)
         ev = {"page": 1, "quote": "needle", "span_hash": "y", "evidence_id": "z", "section": None}
-        full_text_end = "................................................................................needle.........."
-        # Since total_pages = 0, page data is ignored and string index is used
-        pos = gen._derive_corpus_position([ev], total_pages=0, full_text=full_text_end)
-        assert pos == "end"
+        full_text = "................................................................................needle.........."
+        # Since total_pages = 0, fallback is prohibited
+        pos = gen._derive_corpus_position([ev], total_pages=0, full_text=full_text)
+        assert pos is None
 
     def test_deterministic_across_calls(self, resolver_single):
         gen = self._gen(resolver_single)
@@ -387,6 +379,7 @@ async def test_completed_case_passes_frozen_schema_validation(resolver_single, p
     # Simulate downstream corpus-enrichment and 3C verification adding the missing fields.
     completed = partial.to_dict()
     completed["claims"][0]["support_status"] = "supported"
+    completed["retrieval_profile"]["corpus_position"] = "start"
     completed["retrieval_profile"]["distractor_profile"] = "none"
     completed["retrieval_profile"]["retrieval_risk"] = "low"
     completed["verification"] = {
@@ -434,10 +427,10 @@ async def test_hollow_verification_block_exists(resolver_single, profiler_result
     v = d["verification"]
 
     assert v["verdict"] is None
-    assert v["verified_by"] == []
-    assert v["unsupported_claims"] == []
-    assert v["contradictions"] == []
-    assert v["reason"] is None
+    assert "verified_by" not in v
+    assert "unsupported_claims" not in v
+    assert "contradictions" not in v
+    assert "reason" not in v
 
 
 @pytest.mark.asyncio

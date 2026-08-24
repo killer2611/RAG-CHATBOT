@@ -51,10 +51,6 @@ class HollowVerificationStub:
     3B is strictly prohibited from populating actual semantic verdicts.
     """
     verdict: None = None
-    verified_by: List[str] = field(default_factory=list)
-    unsupported_claims: List[str] = field(default_factory=list)
-    contradictions: List[str] = field(default_factory=list)
-    reason: None = None
 
 
 @dataclass
@@ -112,10 +108,6 @@ class PartialBenchmarkCandidate:
             "version": self.version,
             "verification": {
                 "verdict": self.verification.verdict,
-                "verified_by": self.verification.verified_by,
-                "unsupported_claims": self.verification.unsupported_claims,
-                "contradictions": self.verification.contradictions,
-                "reason": self.verification.reason,
             }
         }
 

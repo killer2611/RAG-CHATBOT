@@ -23,20 +23,7 @@ class IntermediateVerificationResult:
     claims_checked: List[str]
     unsupported_claims: List[str]
 
-class UnresolvedPolicyError(Exception):
-    """
-    Raised when an operation requires an established policy that is currently
-    an unresolved open decision (e.g., mixed-claim aggregation logic).
-    """
-    def __init__(self, message: str, partial_result: Optional[IntermediateVerificationResult] = None):
-        super().__init__(message)
-        self.partial_result = partial_result
-
-class StructuralValidationError(Exception):
-    """
-    Raised when a PartialBenchmarkCandidate fails 3C structural checks.
-    """
-    pass
+from app.evaluation.exceptions import UnresolvedPolicyError, StructuralValidationError
 
 class SupportStatus(str, Enum):
     """
@@ -97,14 +84,6 @@ class Phase3CVerifier:
             raise StructuralValidationError("verification stub missing")
         if verif.get("verdict") is not None:
             raise StructuralValidationError("verification.verdict must be null before 3C")
-        if verif.get("verified_by"):
-            raise StructuralValidationError("verification.verified_by must be empty before 3C")
-        if verif.get("unsupported_claims"):
-            raise StructuralValidationError("verification.unsupported_claims must be empty before 3C")
-        if verif.get("contradictions"):
-            raise StructuralValidationError("verification.contradictions must be empty before 3C")
-        if verif.get("reason") is not None:
-            raise StructuralValidationError("verification.reason must be null before 3C")
 
         # Ensure required retrieval_profile fields
         rp = case_dict.get("retrieval_profile")

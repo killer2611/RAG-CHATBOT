@@ -205,18 +205,10 @@ Rules:
             min_page = min(pages_with_data)
             # Pages from provenance are 1-indexed.
             position_ratio = (min_page - 1) / total_pages
-        elif full_text and resolved_evidence:
-            # Deterministic source-grounded fallback using string index.
-            # Avoids arbitrarily assigning "middle" when page data is unavailable.
-            first_idx = -1
-            for ev in resolved_evidence:
-                idx = full_text.find(ev["quote"])
-                if idx != -1:
-                    if first_idx == -1 or idx < first_idx:
-                        first_idx = idx
-
-            if first_idx != -1 and len(full_text) > 0:
-                position_ratio = first_idx / len(full_text)
+        # The locked Phase 3D architectural decision explicitly prohibits using
+        # character offsets, string percentages, or other heuristics to fallback
+        # when authoritative structural position is unavailable.
+        # If pages are unavailable, position_ratio remains None.
 
         if position_ratio is None:
             # Genuinely not derivable (e.g. quote missing from text and no pages).
