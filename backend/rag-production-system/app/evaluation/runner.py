@@ -39,6 +39,19 @@ logger = logging.getLogger(__name__)
 MAX_EVALUATION_CASES = 5
 
 
+def _check_source_match(source, retrieved_items) -> bool:
+    if not source:
+        return True
+    for item in retrieved_items:
+        doc_src = item.document.metadata.get("source_name")
+        doc_id = item.document.metadata.get("source_id")
+        if source.source_name and doc_src == source.source_name:
+            return True
+        if source.source_id and doc_id == source.source_id:
+            return True
+    return False
+
+
 def parse_evaluation_report(report_path: Path, job_id: str) -> dict:
     df = pd.read_csv(report_path)
     total_cases = len(df)
@@ -122,6 +135,31 @@ class EvaluationRunner:
         self.settings = settings
         self.rag_service = rag_service
 
+    async def generate_answer(self, session_id: str, question: str) -> tuple[str, list]:
+        """Shared primitive: Generate answer with RAG context."""
+        return await self.rag_service.answer_with_context(session_id, question, evaluation=True)
+
+    async def execute_metrics(self, test_cases: list[LLMTestCase], metrics: list) -> list:
+        """Shared primitive: Execute DeepEval metrics."""
+        if not test_cases:
+            return []
+
+        async_config = AsyncConfig(
+            run_async=True,
+            max_concurrent=1,
+            throttle_value=max(1, int(self.settings.eval_throttle_seconds)),
+        )
+
+        results = await asyncio.to_thread(
+            evaluate,
+            test_cases,
+            metrics,
+            cache_config=CacheConfig(write_cache=False, use_cache=False),
+            async_config=async_config,
+            error_config=ErrorConfig(ignore_errors=True),
+        )
+        return results.test_results
+
     async def run(
         self,
         job_id: str,
@@ -183,8 +221,8 @@ class EvaluationRunner:
             logger.info("Generating evaluation answer %d/%d with DeepSeek", index + 1, len(golden))
 
             try:
-                actual_output, retrieved = await self.rag_service.answer_with_context(
-                    session_id, case.question, evaluation=True
+                actual_output, retrieved = await self.generate_answer(
+                    session_id, case.question
                 )
             except Exception as e:
                 logger.error("Generation failed for case %d: %s", index, e)
@@ -199,28 +237,16 @@ class EvaluationRunner:
                 continue
 
             # Source metadata validation
-            if case.source:
-                matched = False
-                for item in retrieved:
-                    doc_src = item.document.metadata.get("source_name")
-                    doc_id = item.document.metadata.get("source_id")
-                    if case.source.source_name and doc_src == case.source.source_name:
-                        matched = True
-                        break
-                    if case.source.source_id and doc_id == case.source.source_id:
-                        matched = True
-                        break
-                
-                if not matched:
-                    logger.warning("Source mismatch for case %d. Bypassing DeepEval.", index)
-                    bypassed_cases.append({
-                        "question": case.question,
-                        "expected_output": case.expected_output,
-                        "actual_output": actual_output,
-                        "success": False,
-                        "source_match_status": "SOURCE_MISMATCH"
-                    })
-                    continue
+            if not _check_source_match(case.source, retrieved):
+                logger.warning("Source mismatch for case %d. Bypassing DeepEval.", index)
+                bypassed_cases.append({
+                    "question": case.question,
+                    "expected_output": case.expected_output,
+                    "actual_output": actual_output,
+                    "success": False,
+                    "source_match_status": "SOURCE_MISMATCH"
+                })
+                continue
 
             test_cases.append(
                 LLMTestCase(
@@ -234,33 +260,12 @@ class EvaluationRunner:
             if self.settings.eval_throttle_seconds > 0 and index < len(golden) - 1:
                 await asyncio.sleep(self.settings.eval_throttle_seconds)
 
-        # 4. Run DeepEval conservatively: one case/metric workload at a time.
-        async_config = AsyncConfig(
-            run_async=True,
-            max_concurrent=1,
-            throttle_value=max(
-                1,
-                int(self.settings.eval_throttle_seconds),
-            ),
-        )
-
         logger.info(
             "Running DeepEval on %d test case(s) with max_concurrent=1.",
             len(test_cases),
         )
 
-        if test_cases:
-            results = await asyncio.to_thread(
-                evaluate,
-                test_cases,
-                metrics,
-                cache_config=CacheConfig(write_cache=False, use_cache=False),
-                async_config=async_config,
-                error_config=ErrorConfig(ignore_errors=True),
-            )
-            deep_results = results.test_results
-        else:
-            deep_results = []
+        deep_results = await self.execute_metrics(test_cases, metrics)
 
         # 5. Write CSV report.
         records = []
