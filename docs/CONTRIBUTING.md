@@ -18,7 +18,10 @@ python -m venv .venv
 # source .venv/bin/activate
 
 pip install -r requirements.txt
+# Windows
 copy .env.example .env
+# macOS/Linux
+# cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
@@ -51,6 +54,15 @@ Disable `LANGCHAIN_TRACING_V2` in privacy-sensitive deployments. (Note: LangSmit
 - **Secrets**: Do not commit secrets, API keys, or credentials. Use `.env` files.
 - **Runtime Data**: Do not commit runtime artifacts or generated data (e.g., `data/`, `.pytest_cache`, or generated CSVs).
 - **Frozen Contracts**: Do not modify frozen contracts without explicit architectural approval.
+
+## Open Decisions
+
+Twelve architectural policy decisions (OD #1–#12) remain explicitly open.
+These govern evaluation thresholds, aggregation policies, CI methodology,
+and other system-level choices. Open Decisions must not be silently
+resolved in code — each requires an explicit decision document in
+`docs/decisions/` before any implementation proceeds. Consult the
+project maintainer before implementing any policy-level change.
 
 ## Frozen Schema Rule
 

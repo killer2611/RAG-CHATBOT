@@ -13,7 +13,7 @@ A production-oriented Retrieval-Augmented Generation (RAG) system that automatic
 The system is organized into a five-layer conceptual hierarchy mapping to the project roadmap:
 
 * **Layer 1 — RAG Foundation:** Core document ingestion, embedding, and chat generation (Phase 1).
-* **Layer 2 — Evaluation Baseline / Evaluation Infrastructure:** DeepEval integration and local judge configuration (Phase 2).
+* **Layer 2 — Evaluation Baseline & Infrastructure:** DeepEval integration and local judge configuration (Phase 2).
 * **Layer 3 — Self-Auditing Benchmark Construction:** Automated adversarial generation, verification, and assembly of test cases (Phases 3A–3D).
   * *(Phase 3E serves as the calibration bridge linking construction to evaluation)*
 * **Layer 4 — Evaluation Integration:** Statistical reporting and baseline benchmark execution (Phase 3F).
@@ -37,14 +37,14 @@ Advanced retrieval components include hierarchical parent-child chunking, `MiniL
 
 ## Project Roadmap
 
-* Phase 1–2  — ✅ complete
+* Phase 1–2 — ✅ complete
 * Phase 3A    — ✅ complete
 * Phase 3B    — ✅ complete
 * Phase 3C    — ✅ complete
 * Phase 3D    — ✅ complete
 * Phase 3E    — ✅ complete
 * Phase 3F    — ✅ complete
-* Phase 4     — ⏳ upcoming
+* Phase 4     — 🔄 in progress
 * Phase 5     — ⏳ upcoming
 * Phase 6     — ⏳ upcoming
 * Phase 7     — ⏳ upcoming
@@ -67,7 +67,10 @@ python -m venv .venv
 # source .venv/bin/activate
 
 pip install -r requirements.txt
+# Windows
 copy .env.example .env
+# macOS/Linux
+# cp .env.example .env
 uvicorn app.main:app --reload
 ```
 The API documentation is available at `http://127.0.0.1:8000/docs`.
