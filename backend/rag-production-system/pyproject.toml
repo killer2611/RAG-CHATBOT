@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
-addopts = "-q"
+addopts = "-q --basetemp=pytest_tmp"
 
 [tool.ruff]
 line-length = 100
