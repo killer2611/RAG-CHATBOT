@@ -83,6 +83,7 @@ class Settings(BaseSettings):
     job_ttl_seconds: int = 86400
 
     # Phase 3 Configuration
+    phase3_unsupported_ratio_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
     phase3_schema_version: str = "1.0"
     phase3_benchmark_version: str = "3b-candidate"
     phase3_generator_prompt_version: str | None = None

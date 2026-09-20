@@ -55,31 +55,45 @@ def test_enricher_policy_blocked():
     # Confirm no mutation of caller-owned object
     assert result.partial_case_dict == original_dict
 
-def test_aggregator_structural_assembly():
+@pytest.mark.asyncio
+async def test_aggregator_structural_assembly():
     """
     Tests that CaseAggregator structurally assembles the verification.primary
-    block mapping claims correctly, but halts at the OD #10 policy boundary.
+    block mapping claims correctly according to OD #10.
     """
     result = IntermediateVerificationResult(
-        partial_case_dict={"case_id": "test-3"},
+        partial_case_dict={
+            "case_id": "test-3",
+            "claims": [
+                {"claim_id": "claim1", "support_status": "supported"},
+                {"claim_id": "claim2", "support_status": "unsupported"}
+            ]
+        },
         claims_checked=["claim1", "claim2"],
         unsupported_claims=["claim2"]
     )
-    aggregator = CaseAggregator()
+    from app.core.config import Settings
+    from unittest.mock import AsyncMock
+    mock_settings = Settings(
+        chat_provider="groq",
+        groq_api_key="test",
+        eval_deepseek_api_key="test",
+        eval_sambanova_api_key="test",
+        phase3_unsupported_ratio_threshold=0.5
+    )
 
-    with pytest.raises(UnresolvedPolicyError) as exc_info:
-        aggregator.aggregate(result)
+    mock_secondary = AsyncMock()
+    mock_secondary.verify.return_value = "accepted"
+    aggregator = CaseAggregator(settings=mock_settings, secondary_verifier=mock_secondary)
 
-    assert "aggregation policy remains unresolved" in str(exc_info.value)
+    assembled = await aggregator.aggregate(result)
 
-    # Check assembled case dictionary structure
-    assembled = exc_info.value.partial_result
     verif = assembled.partial_case_dict["verification"]
 
-    assert verif["verdict"] is None
-    assert verif["primary"]["verdict"] is None
+    assert verif["verdict"] == "accepted"
+    assert verif["primary"]["verdict"] == "disputed"
     assert verif["primary"]["claims_checked"] == ["claim1", "claim2"]
     assert verif["primary"]["unsupported_claims"] == ["claim2"]
-    assert verif["primary"]["reason"] is None
-    assert verif["secondary"] is None
+    assert verif["secondary"] is not None
+    assert verif["secondary"]["verdict"] == "accepted"
     assert verif["human_review"] is None
