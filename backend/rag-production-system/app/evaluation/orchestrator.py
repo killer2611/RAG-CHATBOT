@@ -53,10 +53,10 @@ class Phase3DOrchestrator:
                     raise RuntimeError("UnresolvedPolicyError from enricher did not contain IntermediateVerificationResult.") from enrich_e
 
                 # Route to CaseAggregator for structural assembly and aggregation policy seam
-                return self.aggregator.aggregate(enrich_e.partial_result)
+                return await self.aggregator.aggregate(enrich_e.partial_result)
 
             # If enrich returned normally, pass to aggregator (should not happen while ODs remain unresolved)
-            return self.aggregator.aggregate(enriched_result)
+            return await self.aggregator.aggregate(enriched_result)
 
         # If verify_candidate returned normally, it violated the 3C always-raise contract.
         raise RuntimeError("Verifier returned normally, violating the 3C always-raise boundary.")
