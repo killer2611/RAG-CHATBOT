@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from deepeval.models import GPTModel
+from deepeval.models import OpenAIModel
 
 from app.core.config import Settings
 
@@ -33,7 +33,7 @@ def build_judge(settings: Settings, override: str | None = None):
                 "Set EVAL_DEEPSEEK_API_KEY in .env."
             )
 
-        return GPTModel(
+        return OpenAIModel(
             model=settings.eval_deepseek_model,
             api_key=key,
             base_url=settings.eval_deepseek_base_url,
@@ -48,7 +48,7 @@ def build_judge(settings: Settings, override: str | None = None):
                 "Set EVAL_SAMBANOVA_API_KEY in .env."
             )
 
-        return GPTModel(
+        return OpenAIModel(
             model=settings.eval_sambanova_model,
             api_key=key,
             base_url=settings.eval_sambanova_base_url,
