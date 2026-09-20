@@ -44,7 +44,7 @@ Advanced retrieval components include hierarchical parent-child chunking, `MiniL
 * Phase 3D    — ✅ complete
 * Phase 3E    — ✅ complete
 * Phase 3F    — ✅ complete
-* Phase 4     — 🔄 in progress
+* Phase 4     — ✅ complete
 * Phase 5     — ⏳ upcoming
 * Phase 6     — ⏳ upcoming
 * Phase 7     — ⏳ upcoming
@@ -54,7 +54,7 @@ Advanced retrieval components include hierarchical parent-child chunking, `MiniL
 
 ## Local Development Quick Start
 
-*Docker support is being added in Phase 4b — local development instructions below.*
+*Docker support is available for local development and containerized execution.*
 
 ### Backend
 ```bash
