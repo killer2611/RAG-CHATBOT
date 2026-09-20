@@ -4,7 +4,7 @@ Thank you for contributing! Please follow these practical guidelines to ensure c
 
 ## Local Setup
 
-*Docker support is being added in Phase 4b. Currently, please use the following local setup.*
+*Docker support is available. The local setup below remains the canonical development workflow.*
 
 ### Backend
 To set up the FastAPI backend locally:
