@@ -1,0 +1,50 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    name: Backend Test Suite
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend/rag-production-system
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: pip-ubuntu-py313-${{ hashFiles('backend/rag-production-system/requirements.txt') }}
+        restore-keys: |
+          pip-ubuntu-py313-
+
+    - name: Install CPU-only PyTorch
+      run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+    - name: Install backend dependencies
+      run: pip install -r requirements.txt
+
+    - name: Verify dependency graph
+      run: pip check
+
+    - name: Run full test suite
+      env:
+        GROQ_API_KEY: ""
+        EVAL_DEEPSEEK_API_KEY: ""
+        EVAL_SAMBANOVA_API_KEY: ""
+        GEMINI_API_KEY: ""
+      run: python -m pytest tests/ --tb=short
