@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class HistoryStore:
     def __init__(self, settings: Settings) -> None:
-        from langchain_community.chat_message_histories import SQLChatMessageHistory
+        from langchain_community.chat_message_histories.sql import SQLChatMessageHistory
 
         self._history_cls = SQLChatMessageHistory
         self._db_url = settings.database_url
