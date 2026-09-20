@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend/rag-production-system
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/rag-production-system/data:/app/data
+    env_file:
+      - ./backend/rag-production-system/.env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend
