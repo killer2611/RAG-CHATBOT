@@ -392,6 +392,41 @@ The `docs/decisions/` directory is created by the commit that adds this file.
 
 ---
 
+## Schema-Conformance Amendment
+
+This amendment clarifies the schema-conformance interpretation of the OD-10 implementation behavior and supersedes any conflicting illustrative text in the original decision.
+
+### A. Frozen Schema Authority
+The schema defined in `docs/Phase 3/benchmark_case.schema.json` is authoritative for the serialized benchmark case verification structure and remains strictly frozen. This ADR does not authorize the addition of serialized properties that the frozen schema does not permit.
+
+### B. Correction of Illustrative Example
+The original ADR's illustrative verification block included top-level fields such as `unsupported_claims`, `contradictions`, and `reason`. These fields are NOT permitted as top-level properties of the `verification` object under the frozen schema. The previous example is purely illustrative and MUST NOT be interpreted as permission to add schema-forbidden properties.
+
+### C. Secondary Failure / Unavailable / Timeout
+The earlier wording describing secondary failure as resulting in `human_review` is explicitly corrected. The authoritative Phase 5b implementation behavior for secondary failure (unavailable, timeout, exception, or an exact accepted/rejected response parsing failure) is:
+- `primary.verdict = "disputed"`
+- `secondary = null`
+- `verification.verdict = "disputed"`
+
+### D. Human Review
+`human_review` remains `null` for this OD-10 automated aggregation path. Future human-review behavior remains governed by the relevant unresolved Open Decision (OD #7) and is NOT resolved by this amendment.
+
+### E. Transient / Final Semantics
+The meaning of the `disputed` verdict is clarified as follows:
+- Primary `disputed` means the primary verifier found an unsupported-claim case eligible for secondary adjudication.
+- While the secondary verifier is running, `disputed` is the transient primary state.
+- If the secondary verifier succeeds, the final case verdict becomes `accepted` or `rejected`.
+- If the secondary verifier fails, is unavailable, times out, or returns an invalid response, the final automated case verdict remains `disputed`.
+- Such disputed cases must follow the existing population/admission rules and must NOT be silently treated as accepted or rejected.
+
+### F. Schema-Compliant Secondary Object
+When secondary verification succeeds, the populated `secondary` object must conform exactly to the frozen schema and may only contain fields explicitly allowed by that schema.
+
+### G. No Other OD Changes
+This amendment changes only the schema-conformance interpretation of OD-10 implementation behavior and does not resolve or modify any other Open Decisions.
+
+---
+
 ## Approval
 
 Reviewed and approved prior to Phase 5b implementation.
