@@ -148,11 +148,10 @@ at least one claim is `unsupported` AND
 Policy: set `verification.primary.verdict = "disputed"`. Invoke the
 secondary verifier.
 
-**IMPORTANT: `disputed` is a transient intermediate state produced by the
-primary verifier. It is NOT a canonical final case verdict. The implementation
-MUST NOT write an artifact with `verification.verdict = "disputed"` after
-the secondary verifier has been invoked. The final case verdict is resolved
-only after secondary produces its outcome (see below).**
+**IMPORTANT: `disputed` is an intermediate state produced by the
+primary verifier while secondary adjudication is in progress.
+(See the Schema-Conformance Amendment for final automated case verdict
+semantics if the secondary verifier fails or is unavailable).**
 
 **Secondary verifier (OD #6 — resolved simultaneously with OD #10):**
 Model: `Meta-Llama-3.3-70B-Instruct` via SambaNova, accessed using
@@ -166,12 +165,7 @@ restricted to `accepted | rejected` only by `$defs/secondary_verifier_result`).
 Secondary resolution:
 - Secondary returns `accepted` → `verification.verdict = "accepted"`
 - Secondary returns `rejected` → `verification.verdict = "rejected"`
-- Secondary unavailable, times out, or errors → `verification.verdict = "human_review"`
-
-**Note on `human_review`:** This case-level state signals that a human must
-review the case before it can be admitted. The actual human-review interface,
-reviewer workflow, disagreement signal, and persistence UX are governed by
-OD #7, which remains open and is not specified here.
+- Secondary unavailable, times out, or errors → `verification.verdict = "disputed"`
 
 ### Rule 5 — Clean Acceptance
 
@@ -190,11 +184,11 @@ Policy: set `verification.verdict = "accepted"`.
 | answerable | Yes (any) | N/A | any | rejected | No |
 | answerable | No | N/A | 0 | ERROR (Rule 0) | No |
 | answerable | No | > threshold | > 0 | rejected | No |
-| answerable | No | ≤ threshold, >0 unsupported | > 0 | accepted / rejected / human_review | Yes |
+| answerable | No | ≤ threshold, >0 unsupported | > 0 | accepted / rejected / disputed | Yes |
 | answerable | No | 0.0 (none unsupported) | > 0 | accepted | No |
 
 Where secondary is invoked, the final verdict depends on secondary outcome:
-`accepted`, `rejected`, or `human_review` (never `disputed`).
+`accepted`, `rejected`, or `disputed` (if secondary fails/unavailable).
 
 ---
 
@@ -223,7 +217,7 @@ answerability == "answerable"
     │               │
     │               ├── secondary accepted → verdict = "accepted"
     │               ├── secondary rejected → verdict = "rejected"
-    │               └── secondary unavailable/error → verdict = "human_review"
+    │               └── secondary unavailable/error → verdict = "disputed"
     │
     └── all eligible claims supported (ratio = 0.0)
             → verdict = "accepted"   [Rule 5]
@@ -240,7 +234,7 @@ Schema-compliant structure:
 
 ```json
 {
-  "verdict": "<accepted|rejected|human_review>",
+  "verdict": "<accepted|rejected|disputed>",
   "primary": {
     "verdict": "<accepted|rejected|disputed>",
     "claims_checked": ["<claim_id>", "..."],
@@ -267,9 +261,14 @@ Population rules:
 5. The case-level `verification.verdict` must satisfy the allOf constraints
    in the frozen schema (established during Phase 3 schema hardening and
    tested by the 20-state matrix in `test_schema.py`).
-6. `disputed` MUST NOT appear as the final `verification.verdict` in any
-   artifact written by `ArtifactWriter`. It is only valid as
-   `verification.primary.verdict` when secondary is in progress.
+6. `disputed` is valid as `verification.primary.verdict` while secondary
+   adjudication is in progress. If secondary verification succeeds, the
+   final case-level `verification.verdict` becomes `accepted` or
+   `rejected`. If secondary verification fails, is unavailable, times out,
+   or returns an invalid response, the final automated
+   `verification.verdict` is `disputed`, with
+   `verification.primary.verdict = "disputed"` and
+   `verification.secondary = null`.
 
 ---
 
