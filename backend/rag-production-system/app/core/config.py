@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     allowed_origins: str = "http://localhost:3000,http://localhost:8501"
 
+    LANGCHAIN_TRACING_V2: str = ""
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "rag-benchmark-platform"
+
     # Normal chat
     chat_provider: Literal["groq", "gemini", "ollama"] = "groq"
 

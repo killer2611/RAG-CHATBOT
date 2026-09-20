@@ -44,7 +44,7 @@ pytest
 
 ## Privacy & Observability
 
-Disable `LANGCHAIN_TRACING_V2` in privacy-sensitive deployments. (Note: LangSmith integration is handled separately; simply ensure the environment variable is disabled if privacy is required).
+LangSmith tracing is optional, requires `LANGCHAIN_TRACING_V2` to be enabled, and should remain disabled in privacy-sensitive deployments.
 
 ## Branch and Commit Conventions
 
