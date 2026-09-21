@@ -66,6 +66,14 @@ def build_mock_llm(candidates_per_call: int = 5):
     return llm
 
 # A. COST & G. BUDGET (HARDENING #3 & CORRECTION 1)
+def test_generator_initialization(provenance_resolver):
+    llm = MagicMock()
+    generator = CandidateGenerator(llm=llm, provenance_resolver=provenance_resolver)
+    llm.with_structured_output.assert_called_once_with(
+        BatchCandidateOutput,
+        method="json_mode"
+    )
+
 @pytest.mark.asyncio
 async def test_budget_cost_and_prompt_request(provenance_resolver, profiler_result):
     llm = build_mock_llm(5)
