@@ -242,8 +242,6 @@ async def main():
         else:
             distractor = "none"
 
-        seen_span_hashes.update(candidate_spans)
-
         # 4C — retrieval_risk
         # PROVISIONAL — OD #5 NOT RESOLVED
         evidence_scope = retrieval_profile.get("evidence_scope", "single_span")
@@ -264,15 +262,16 @@ async def main():
         try:
             artifact_path = writer.write_case(case_dict)
             n_admitted += 1
+            seen_span_hashes.update(candidate_spans)
             per_case_verdicts.append({
                 "case_id": actual_case_id,
                 "verdict": "accepted",
                 "artifact_path": str(artifact_path.relative_to(output_dir))
             })
             print(f"[pipeline] Candidate {i}/{n_generated}: verdict=accepted")
-        except ValueError as e:
+        except Exception as e:
             n_pipeline_errors += 1
-            logging.error(f"ArtifactWriter ValueError for candidate {actual_case_id}: {e}")
+            logging.exception(f"ArtifactWriter failure for candidate {actual_case_id}: {e}")
             per_case_verdicts.append({
                 "case_id": actual_case_id,
                 "verdict": "pipeline_error"
