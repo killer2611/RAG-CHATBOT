@@ -60,3 +60,14 @@ class BenchmarkPopulationError(Exception):
         self.n_pipeline_errors = n_pipeline_errors
         self.min_floor = min_floor
         self.mode = mode
+
+class BenchmarkPopulationAccountingError(Exception):
+    """
+    Raised when the OD-11 four-counter invariant fails:
+    n_generated != n_admitted + n_rejected + n_disputed + n_pipeline_errors
+
+    This is a pipeline implementation defect, NOT a population-floor failure.
+    When this fires, no manifest is written and BenchmarkPopulationError
+    is never raised. The two failures are different and must never be conflated.
+    """
+    pass

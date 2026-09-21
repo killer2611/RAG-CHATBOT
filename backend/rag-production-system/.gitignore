@@ -21,3 +21,4 @@ venv/
 /data/parent_store/*.sqlite3-*
 /data/chat_history.sqlite3*
 /data/reports/*
+/data/benchmark/*
