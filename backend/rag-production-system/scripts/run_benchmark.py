@@ -140,6 +140,7 @@ async def main():
     n_pipeline_errors = 0
 
     per_case_verdicts = []
+    seen_candidate_ids = set()
     seen_case_ids = set()
     seen_span_hashes = set()
 
@@ -147,7 +148,7 @@ async def main():
         candidate_id = candidate.case_id
 
         # 3A — DUPLICATE case_id INTEGRITY CHECK
-        if candidate_id in seen_case_ids:
+        if candidate_id in seen_candidate_ids:
             logging.error(f"Duplicate case_id detected: {candidate_id}")
             n_pipeline_errors += 1
             per_case_verdicts.append({
@@ -157,7 +158,7 @@ async def main():
             print(f"[pipeline] Candidate {i}/{n_generated}: verdict=pipeline_error")
             continue
 
-        seen_case_ids.add(candidate_id)
+        seen_candidate_ids.add(candidate_id)
 
         # 3B — EXISTING 3B -> 3D PIPELINE
         try:
@@ -186,6 +187,16 @@ async def main():
         # 3D — VERDICT CLASSIFICATION
         verdict = case_dict.get("verification", {}).get("verdict")
         actual_case_id = case_dict.get("case_id", candidate_id)
+
+        if actual_case_id in seen_case_ids:
+            logging.error(f"Duplicate FINAL case_id detected: {actual_case_id}")
+            n_pipeline_errors += 1
+            per_case_verdicts.append({
+                "case_id": actual_case_id,
+                "verdict": "pipeline_error"
+            })
+            print(f"[pipeline] Candidate {i}/{n_generated}: verdict=pipeline_error")
+            continue
 
         if verdict == "rejected":
             n_rejected += 1
@@ -262,6 +273,7 @@ async def main():
         try:
             artifact_path = writer.write_case(case_dict)
             n_admitted += 1
+            seen_case_ids.add(actual_case_id)
             seen_span_hashes.update(candidate_spans)
             per_case_verdicts.append({
                 "case_id": actual_case_id,
