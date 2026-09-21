@@ -84,6 +84,10 @@ async def test_budget_cost_and_prompt_request(provenance_resolver, profiler_resu
     assert generator.structured_llm.ainvoke.call_count == 1
     system_prompt = generator.structured_llm.ainvoke.call_args[0][0][0].content
     assert "Generate exactly 5 candidate cases." in system_prompt
+    assert "candidates" in system_prompt
+    assert "expected_answer" in system_prompt
+    assert "question_type" in system_prompt
+    assert "claims" in system_prompt
     generator.structured_llm.ainvoke.reset_mock()
 
     # 7 candidates -> 2 calls (first requests 5, second requests 2)

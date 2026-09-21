@@ -223,6 +223,12 @@ async def test_j_k_l_m_semantic_verifier_and_call_count(mock_llm_factory):
     # Check M. Call count = 1 for 2 claims.
     assert verifier.structured_llm.call_count == 1
 
+    system_prompt_text = verifier.structured_llm.last_prompts[0].content
+    assert "results" in system_prompt_text
+    assert "claim_id" in system_prompt_text
+    assert "support_status" in system_prompt_text
+    assert "reason" in system_prompt_text
+
     # Check P. Identity continuity on the working copy
     assert working_case["case_id"] == "case-123"
     assert working_case["claims"][0]["claim_id"] == "claim-1"

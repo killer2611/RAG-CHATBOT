@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.output_parsers import PydanticOutputParser
 
 from app.core.config import get_settings
 from app.evaluation.candidates import PartialBenchmarkCandidate, PartialRetrievalProfile
@@ -108,6 +109,9 @@ class CandidateGenerator:
         doc_type = profiler_result.document_type
         strategy = STRATEGY_TEMPLATES.get(doc_type, STRATEGY_TEMPLATES["general"])
 
+        parser = PydanticOutputParser(pydantic_object=BatchCandidateOutput)
+        format_instructions = parser.get_format_instructions()
+
         system_prompt = f"""You are a Phase 3 Candidate Generator for a RAG Evaluation Benchmark.
 The source document is classified as: '{doc_type}'.
 {strategy}
@@ -118,6 +122,7 @@ Rules:
 2. Unanswerable cases should be plausible questions that seem relevant but cannot be answered using the text.
 
 Return the requested structure as valid JSON.
+{format_instructions}
 """
 
         num_calls = (budget + MAX_CANDIDATES_PER_BATCH - 1) // MAX_CANDIDATES_PER_BATCH
