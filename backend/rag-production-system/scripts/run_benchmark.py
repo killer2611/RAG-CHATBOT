@@ -121,7 +121,7 @@ async def main():
 
     # STEP 1 — PROFILE
     profiler_result = await profiler.profile(documents)
-    print(f"[profiler] Document type: {profiler_result.document_type} (confidence: {profiler_result.confidence:.2f})")
+    print(f"[profiler] Document type: {profiler_result.document_type} (confidence: {profiler_result.type_confidence:.2f})")
 
     # STEP 2 — GENERATE
     candidates = await generator.generate_candidates(
