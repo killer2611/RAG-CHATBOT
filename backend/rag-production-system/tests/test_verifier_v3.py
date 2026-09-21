@@ -95,6 +95,14 @@ def mock_llm_factory():
         return llm
     return _create
 
+def test_verifier_initialization():
+    llm = MagicMock()
+    verifier = Phase3CVerifier(llm=llm)
+    llm.with_structured_output.assert_called_once_with(
+        VerificationBatchOutput,
+        method="json_mode"
+    )
+
 @pytest.mark.asyncio
 async def test_a_b_c_s_partial_candidate_and_deferred_corpus_position(mock_llm_factory):
     """

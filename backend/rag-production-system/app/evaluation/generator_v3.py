@@ -70,7 +70,10 @@ class CandidateGenerator:
     """
     def __init__(self, llm: BaseChatModel, provenance_resolver: ProvenanceResolver):
         self.llm = llm
-        self.structured_llm = llm.with_structured_output(BatchCandidateOutput)
+        self.structured_llm = llm.with_structured_output(
+            BatchCandidateOutput,
+            method="json_mode",
+        )
         self.provenance_resolver = provenance_resolver
 
     async def generate_candidates(
@@ -113,6 +116,8 @@ Generate evaluation cases based purely on the provided document text.
 Rules:
 1. 'proposed_evidence' MUST be EXACT quotes from the source text. Do not modify the text.
 2. Unanswerable cases should be plausible questions that seem relevant but cannot be answered using the text.
+
+Return the requested structure as valid JSON.
 """
 
         num_calls = (budget + MAX_CANDIDATES_PER_BATCH - 1) // MAX_CANDIDATES_PER_BATCH
