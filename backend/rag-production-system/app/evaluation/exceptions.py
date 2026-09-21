@@ -23,3 +23,40 @@ class UnresolvedPolicyError(Exception):
     def __init__(self, message: str, partial_result: Optional[Any] = None):
         super().__init__(message)
         self.partial_result = partial_result
+
+class BenchmarkPopulationError(Exception):
+    """
+    Raised when a benchmark run completes but n_admitted is below the
+    required minimum floor for the selected mode.
+
+    This is a population-level run failure, NOT an artifact-validation
+    failure. Valid artifacts already written to disk are preserved.
+
+    Attributes:
+        n_generated (int): total candidates produced
+        n_admitted (int): cases admitted to benchmark population
+        n_rejected (int): cases excluded by policy
+        n_disputed (int): cases where secondary verification failed
+        n_pipeline_errors (int): unexpected pipeline failures
+        min_floor (int): required minimum for the selected mode
+        mode (str): run mode (smoke, standard, comprehensive)
+    """
+    def __init__(
+        self,
+        message: str,
+        n_generated: int,
+        n_admitted: int,
+        n_rejected: int,
+        n_disputed: int,
+        n_pipeline_errors: int,
+        min_floor: int,
+        mode: str,
+    ):
+        super().__init__(message)
+        self.n_generated = n_generated
+        self.n_admitted = n_admitted
+        self.n_rejected = n_rejected
+        self.n_disputed = n_disputed
+        self.n_pipeline_errors = n_pipeline_errors
+        self.min_floor = min_floor
+        self.mode = mode
