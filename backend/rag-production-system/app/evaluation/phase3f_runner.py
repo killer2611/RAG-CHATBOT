@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 class Phase3FRunner:
     """
     Isolated execution/reporting path for Phase 3F evaluation.
-    This reuses EvaluationRunner primitives (generate_answer, execute_metrics)
-    without routing through the Phase 1/2 success/passed_cases aggregation path.
+    This reuses the generate_answer primitive from EvaluationRunner
+    but executes DeepEval metrics directly via a_measure without routing
+    through the Phase 1/2 success/passed_cases aggregation path.
     """
 
     def __init__(self, settings: Settings, rag_service: RagService) -> None:
@@ -59,8 +60,6 @@ class Phase3FRunner:
             ("Contextual Recall", ContextualRecallMetric(threshold=None, model=judge)),
         ]
 
-        # Extract just the instances for evaluate() later
-        metrics = [m for _, m in metric_pairs]
 
         reports: List[Dict[str, Any]] = []
         test_cases_for_deepeval: List[LLMTestCase] = []
@@ -171,19 +170,21 @@ class Phase3FRunner:
             if self.settings.eval_throttle_seconds > 0 and index < len(cases) - 1:
                 await asyncio.sleep(self.settings.eval_throttle_seconds)
 
-        # 2. Metric Execution (using shared primitive)
-        deep_results = await self.eval_runner.execute_metrics(test_cases_for_deepeval, metrics)
-
-        # 3. Collect Raw Scores
-        for tc, result in zip(test_cases_for_deepeval, deep_results):
+        # 2. Metric Execution (Direct a_measure execution per OD #1)
+        for tc in test_cases_for_deepeval:
             cid = test_case_to_cid[id(tc)]
             metric_scores: Dict[str, Any] = {}
 
-            for m_data in result.metrics_data:
-                # metric_success is inherently decoupled by threshold=None
-                # but we explicitly mark the internal report success as None/PENDING_OD_1.
-                metric_scores[m_data.name] = {
-                    "score": m_data.score,
+            for m_name, metric in metric_pairs:
+                try:
+                    await metric.a_measure(tc, _show_indicator=False)
+                    score = metric.score
+                except Exception as e:
+                    logger.error("Metric %s failed for case %s: %s", m_name, cid, e)
+                    score = None
+
+                metric_scores[m_name] = {
+                    "score": score,
                     "success": "PENDING_OD_1",
                 }
 
