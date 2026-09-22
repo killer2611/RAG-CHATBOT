@@ -13,6 +13,8 @@ from deepeval.metrics import (
     ContextualRecallMetric,
 )
 
+from app.rag.prompts import GROUNDED_ABSTENTION
+
 from app.core.config import Settings
 from app.rag.service import RagService
 from app.evaluation.datasets import GoldenCase, GoldenSource
@@ -56,7 +58,7 @@ class Phase3FRunner:
             ("Contextual Precision", ContextualPrecisionMetric(threshold=None, model=judge)),
             ("Contextual Recall", ContextualRecallMetric(threshold=None, model=judge)),
         ]
-        
+
         # Extract just the instances for evaluate() later
         metrics = [m for _, m in metric_pairs]
 
@@ -64,6 +66,9 @@ class Phase3FRunner:
         test_cases_for_deepeval: List[LLMTestCase] = []
         test_case_to_cid: Dict[int, str] = {}
         metadata_map: Dict[str, Dict[str, Any]] = {}
+
+        total_unanswerable = 0
+        correctly_abstained_count = 0
 
         # 1. Adapter Layer & Generation
         for index, case_data in enumerate(cases):
@@ -90,6 +95,9 @@ class Phase3FRunner:
 
             session_id = f"eval-3f-{index}"
 
+            if ans == "unanswerable":
+                total_unanswerable += 1
+
             try:
                 # Reuse primitive: answer_with_context(..., evaluation=True)
                 actual_output, retrieved = await self.eval_runner.generate_answer(
@@ -97,31 +105,43 @@ class Phase3FRunner:
                 )
             except Exception as e:
                 logger.error("Generation failed for case %s: %s", cid, e)
-                reports.append(
-                    {
-                        "case_id": cid,
-                        "status": "GENERATION_ERROR",
-                        "error_reason": str(e),
-                        "actual_output": None,
-                        "metrics": {},
-                    }
-                )
+                if ans == "unanswerable":
+                    reports.append(
+                        {
+                            "case_id": cid,
+                            "status": "GENERATION_ERROR",
+                            "error_reason": str(e),
+                            "actual_output": None,
+                            "correctly_abstained": False,
+                            "abstention_score": 0.0,
+                            "metrics": {},
+                        }
+                    )
+                else:
+                    reports.append(
+                        {
+                            "case_id": cid,
+                            "status": "GENERATION_ERROR",
+                            "error_reason": str(e),
+                            "actual_output": None,
+                            "metrics": {},
+                        }
+                    )
                 continue
 
             # OD #2 Firewall: Abstention Routing
             if ans == "unanswerable":
+                correctly_abstained = (actual_output or "").strip() == GROUNDED_ABSTENTION
+                if correctly_abstained:
+                    correctly_abstained_count += 1
+
                 reports.append(
                     {
                         "case_id": cid,
-                        "status": "PENDING_POLICY",
+                        "status": "ABSTENTION_EVALUATED",
                         "actual_output": actual_output,
-                        "metrics": {
-                            m_name: {
-                                "score": None,
-                                "success": "PENDING_POLICY",
-                            }
-                            for m_name, _ in metric_pairs
-                        },
+                        "correctly_abstained": correctly_abstained,
+                        "abstention_score": 1.0 if correctly_abstained else 0.0,
                     }
                 )
                 continue
@@ -214,9 +234,19 @@ class Phase3FRunner:
                 }
 
         # 5. Internal Deterministic Report (not a production contract)
+        abstention_accuracy = None
+        if total_unanswerable > 0:
+            abstention_accuracy = correctly_abstained_count / total_unanswerable
+
         internal_report = {
             "job_id": job_id,
             "confidence_interval": "PENDING_OD_3",
+            "abstention": {
+                "accuracy": abstention_accuracy,
+                "correctly_abstained_count": correctly_abstained_count,
+                "total_unanswerable": total_unanswerable,
+                "formula": "exact_canonical_match"
+            },
             "stratified_statistics": stratified_stats,
             "case_reports": reports,
         }
