@@ -90,31 +90,29 @@ async def test_3f_runner_generates_and_evaluates_incorrect_abstention(mock_setti
 
     runner = Phase3FRunner(mock_settings, mock_rag)
 
-    with patch("app.evaluation.runner.evaluate") as mock_eval:
-        mock_result = MagicMock()
+    async def fake_faith(self, tc, _show_indicator=False):
+        self.score = 0.95
 
-        # Test case 1 is answerable, so it gets deep-eval'ed.
-        res1 = MagicMock()
-        res1.input = "What is X?"
-        res1.expected_output = "X is Y."
-        res1.actual_output = "Generated Answer"
-        res1.success = None
+    async def fake_rel(self, tc, _show_indicator=False):
+        self.score = 0.8
 
-        m1 = MagicMock()
-        m1.name = "Faithfulness"
-        m1.score = 0.95
-        m1.success = None
+    async def fake_prec(self, tc, _show_indicator=False):
+        self.score = 0.9
 
-        m2 = MagicMock()
-        m2.name = "Answer Relevancy"
-        m2.score = 0.8
-        m2.success = None
+    async def fake_rec(self, tc, _show_indicator=False):
+        self.score = 0.7
 
-        res1.metrics_data = [m1, m2]
-        mock_result.test_results = [res1]
-        mock_eval.return_value = mock_result
+    with patch("deepeval.metrics.FaithfulnessMetric.a_measure", fake_faith), \
+         patch("deepeval.metrics.AnswerRelevancyMetric.a_measure", fake_rel), \
+         patch("deepeval.metrics.ContextualPrecisionMetric.a_measure", fake_prec), \
+         patch("deepeval.metrics.ContextualRecallMetric.a_measure", fake_rec), \
+         patch("app.evaluation.runner.evaluate") as mock_eval:
 
         report = await runner.run(dummy_benchmark_cases, stratify_by=["question_type"])
+
+        # EXPLICIT ARCHITECTURAL REGRESSION ASSERTION:
+        # Phase 3F MUST NOT invoke the old execute_metrics -> evaluate orchestration.
+        mock_eval.assert_not_called()
 
         # Verifications
         assert report["job_id"] == "3f-run"
@@ -128,6 +126,12 @@ async def test_3f_runner_generates_and_evaluates_incorrect_abstention(mock_setti
         assert c1["status"] == "EVALUATED"
         assert c1["metrics"]["Faithfulness"]["score"] == 0.95
         assert c1["metrics"]["Faithfulness"]["success"] == "PENDING_OD_1"
+        assert c1["metrics"]["Answer Relevancy"]["score"] == 0.8
+        assert c1["metrics"]["Answer Relevancy"]["success"] == "PENDING_OD_1"
+        assert c1["metrics"]["Contextual Precision"]["score"] == 0.9
+        assert c1["metrics"]["Contextual Precision"]["success"] == "PENDING_OD_1"
+        assert c1["metrics"]["Contextual Recall"]["score"] == 0.7
+        assert c1["metrics"]["Contextual Recall"]["success"] == "PENDING_OD_1"
 
         # Case 2 (unanswerable) - Incorrect Abstention
         c2 = next(c for c in cases if c["case_id"] == "test-case-unanswerable")
@@ -154,7 +158,7 @@ async def test_3f_runner_generates_and_evaluates_incorrect_abstention(mock_setti
 
 @pytest.mark.asyncio
 async def test_3f_unanswerable_correct_abstention_and_whitespace(mock_settings, dummy_benchmark_cases):
-    # Tests A (Correct Abstention), E (Whitespace Behavior), F (No DeepEval)
+    # Tests A (Correct Abstention), E (Whitespace Behavior)
     mock_rag = AsyncMock(spec=RagService)
 
     class DummyDoc:
@@ -174,27 +178,23 @@ async def test_3f_unanswerable_correct_abstention_and_whitespace(mock_settings, 
     # Just the unanswerable case
     unanswerable_case = [dummy_benchmark_cases[1]]
 
-    with patch("app.evaluation.runner.evaluate") as mock_eval:
-        report = await runner.run(unanswerable_case, stratify_by=[])
+    report = await runner.run(unanswerable_case, stratify_by=[])
 
-        # DeepEval evaluation is NOT invoked (TEST F)
-        mock_eval.assert_not_called()
+    cases = report["case_reports"]
+    assert len(cases) == 1
+    c1 = cases[0]
 
-        cases = report["case_reports"]
-        assert len(cases) == 1
-        c1 = cases[0]
+    assert c1["case_id"] == "test-case-unanswerable"
+    assert c1["status"] == "ABSTENTION_EVALUATED"
+    assert c1["actual_output"] == f"  \n\t{GROUNDED_ABSTENTION}  "
+    assert c1["correctly_abstained"] is True
+    assert c1["abstention_score"] == 1.0
 
-        assert c1["case_id"] == "test-case-unanswerable"
-        assert c1["status"] == "ABSTENTION_EVALUATED"
-        assert c1["actual_output"] == f"  \n\t{GROUNDED_ABSTENTION}  "
-        assert c1["correctly_abstained"] is True
-        assert c1["abstention_score"] == 1.0
-
-        # Check Abstention Report
-        abstention = report["abstention"]
-        assert abstention["total_unanswerable"] == 1
-        assert abstention["correctly_abstained_count"] == 1
-        assert abstention["accuracy"] == 1.0
+    # Check Abstention Report
+    abstention = report["abstention"]
+    assert abstention["total_unanswerable"] == 1
+    assert abstention["correctly_abstained_count"] == 1
+    assert abstention["accuracy"] == 1.0
 
 
 @pytest.mark.asyncio
@@ -209,25 +209,22 @@ async def test_3f_unanswerable_generation_failure(mock_settings, dummy_benchmark
 
     unanswerable_case = [dummy_benchmark_cases[1]]
 
-    with patch("app.evaluation.runner.evaluate") as mock_eval:
-        report = await runner.run(unanswerable_case, stratify_by=[])
+    report = await runner.run(unanswerable_case, stratify_by=[])
 
-        mock_eval.assert_not_called()
+    cases = report["case_reports"]
+    assert len(cases) == 1
+    c1 = cases[0]
 
-        cases = report["case_reports"]
-        assert len(cases) == 1
-        c1 = cases[0]
+    assert c1["case_id"] == "test-case-unanswerable"
+    assert c1["status"] == "GENERATION_ERROR"
+    assert c1["actual_output"] is None
+    assert c1["correctly_abstained"] is False
+    assert c1["abstention_score"] == 0.0
 
-        assert c1["case_id"] == "test-case-unanswerable"
-        assert c1["status"] == "GENERATION_ERROR"
-        assert c1["actual_output"] is None
-        assert c1["correctly_abstained"] is False
-        assert c1["abstention_score"] == 0.0
-
-        abstention = report["abstention"]
-        assert abstention["total_unanswerable"] == 1
-        assert abstention["correctly_abstained_count"] == 0
-        assert abstention["accuracy"] == 0.0
+    abstention = report["abstention"]
+    assert abstention["total_unanswerable"] == 1
+    assert abstention["correctly_abstained_count"] == 0
+    assert abstention["accuracy"] == 0.0
 
 
 @pytest.mark.asyncio
@@ -251,16 +248,22 @@ async def test_3f_runner_zero_denominator(mock_settings, dummy_benchmark_cases):
     # Just the answerable case
     answerable_case = [dummy_benchmark_cases[0]]
 
-    with patch("app.evaluation.runner.evaluate") as mock_eval:
-        mock_result = MagicMock()
-        res1 = MagicMock()
-        res1.input = "What is X?"
-        res1.expected_output = "X is Y."
-        res1.actual_output = "Generated Answer"
-        res1.success = None
-        res1.metrics_data = []
-        mock_result.test_results = [res1]
-        mock_eval.return_value = mock_result
+    async def fake_faith(self, tc, _show_indicator=False):
+        self.score = None
+
+    async def fake_rel(self, tc, _show_indicator=False):
+        self.score = None
+
+    async def fake_prec(self, tc, _show_indicator=False):
+        self.score = None
+
+    async def fake_rec(self, tc, _show_indicator=False):
+        self.score = None
+
+    with patch("deepeval.metrics.FaithfulnessMetric.a_measure", fake_faith), \
+         patch("deepeval.metrics.AnswerRelevancyMetric.a_measure", fake_rel), \
+         patch("deepeval.metrics.ContextualPrecisionMetric.a_measure", fake_prec), \
+         patch("deepeval.metrics.ContextualRecallMetric.a_measure", fake_rec):
 
         report = await runner.run(answerable_case, stratify_by=[])
 
@@ -272,3 +275,55 @@ async def test_3f_runner_zero_denominator(mock_settings, dummy_benchmark_cases):
         assert abstention["correctly_abstained_count"] == 0
         assert abstention["accuracy"] is None
         assert abstention["formula"] == "exact_canonical_match"
+
+@pytest.mark.asyncio
+async def test_3f_runner_metric_failure_handling(mock_settings, dummy_benchmark_cases):
+    # Verify a failure in one metric is caught and doesn't abort the run
+    mock_rag = AsyncMock(spec=RagService)
+
+    class DummyDoc:
+        def __init__(self, name):
+            self.metadata = {"source_name": name, "source_id": "doc1"}
+            self.page_content = "content"
+
+    class DummyItem:
+        def __init__(self, name):
+            self.document = DummyDoc(name)
+
+    mock_rag.answer_with_context.return_value = ("Generated Answer", [DummyItem("doc1.pdf")])
+
+    runner = Phase3FRunner(mock_settings, mock_rag)
+
+    # Just the answerable case
+    answerable_case = [dummy_benchmark_cases[0]]
+
+    async def fake_faith(self, tc, _show_indicator=False):
+        raise ValueError("Simulated faith crash")
+
+    async def fake_rel(self, tc, _show_indicator=False):
+        self.score = 0.8
+
+    async def fake_prec(self, tc, _show_indicator=False):
+        self.score = 0.9
+
+    async def fake_rec(self, tc, _show_indicator=False):
+        self.score = 0.7
+
+    with patch("deepeval.metrics.FaithfulnessMetric.a_measure", fake_faith), \
+         patch("deepeval.metrics.AnswerRelevancyMetric.a_measure", fake_rel), \
+         patch("deepeval.metrics.ContextualPrecisionMetric.a_measure", fake_prec), \
+         patch("deepeval.metrics.ContextualRecallMetric.a_measure", fake_rec):
+
+        report = await runner.run(answerable_case, stratify_by=[])
+
+        cases = report["case_reports"]
+        assert len(cases) == 1
+        
+        c1 = cases[0]
+        assert c1["status"] == "EVALUATED"
+        # Faithfulness crashed, so score is None
+        assert c1["metrics"]["Faithfulness"]["score"] is None
+        assert c1["metrics"]["Faithfulness"]["success"] == "PENDING_OD_1"
+        # Others passed
+        assert c1["metrics"]["Answer Relevancy"]["score"] == 0.8
+        assert c1["metrics"]["Answer Relevancy"]["success"] == "PENDING_OD_1"
